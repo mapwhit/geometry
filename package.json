@@ -1,0 +1,36 @@
+{
+  "name": "@mapwhit/geometry",
+  "version": "0.0.0",
+  "description": "2d cartesian geometry utils used by map.",
+  "author": {
+    "name": "Damian Krzeminski",
+    "email": "pirxpilot@furkot.com",
+    "url": "https://pirxpilot.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mapwhit/geometry.git"
+  },
+  "type": "module",
+  "exports": "./index.js",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "geometry",
+    "point",
+    "line",
+    "geometry"
+  ],
+  "dependencies": {
+    "tinyqueue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.2"
+  },
+  "scripts": {
+    "test": "make check"
+  },
+  "files": [
+    "index.js",
+    "lib"
+  ]
+}
