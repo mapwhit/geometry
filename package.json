@@ -24,7 +24,8 @@
     "tinyqueue": "^3.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.2"
+    "@biomejs/biome": "2.2.2",
+    "mitata": "^1.0.34"
   },
   "scripts": {
     "test": "make check"

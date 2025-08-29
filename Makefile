@@ -13,3 +13,16 @@ test-cov: TEST_OPTS := --experimental-test-coverage
 test-cov: test
 
 .PHONY: check format lint test test-cov
+
+bench: bench-util bench-intersection bench-poi
+
+bench-util:
+	node --expose-gc benchmarks/util.js
+
+bench-intersection:
+	node --expose-gc  benchmarks/intersection.js
+
+bench-poi:
+	node --expose-gc  benchmarks/poi.js
+
+.PHONY: bench bench-util bench-intersection bench-poi
