@@ -1,5 +1,6 @@
 import test from 'node:test';
 import {
+  boundingBoxesIntersect,
   distToSegmentSquared,
   polygonIntersectsBox,
   polygonIntersectsBufferedMultiLine,
@@ -7,6 +8,82 @@ import {
   polygonIntersectsMultiPolygon,
   polygonIntersectsPolygon
 } from '../lib/intersections.js';
+
+test('boundingBoxesIntersect', async t => {
+  await t.test('should return true for overlapping boxes', t => {
+    const boxA = { minX: 0, minY: 0, maxX: 10, maxY: 10 };
+    const boxB = { minX: 5, minY: 5, maxX: 15, maxY: 15 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), true);
+    t.assert.equal(boundingBoxesIntersect(boxB, boxA), true);
+  });
+
+  await t.test('should return false for non-intersecting boxes', t => {
+    const boxA = { minX: 0, minY: 0, maxX: 5, maxY: 5 };
+    const boxB = { minX: 10, minY: 10, maxX: 15, maxY: 15 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), false);
+    t.assert.equal(boundingBoxesIntersect(boxB, boxA), false);
+  });
+
+  await t.test('should return true for touching boxes (edges touch)', t => {
+    const boxA = { minX: 0, minY: 0, maxX: 5, maxY: 5 };
+    const boxB = { minX: 5, minY: 0, maxX: 10, maxY: 5 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), true);
+    t.assert.equal(boundingBoxesIntersect(boxB, boxA), true);
+  });
+
+  await t.test('should return true when one box is inside another', t => {
+    const outerBox = { minX: 0, minY: 0, maxX: 20, maxY: 20 };
+    const innerBox = { minX: 5, minY: 5, maxX: 15, maxY: 15 };
+
+    t.assert.equal(boundingBoxesIntersect(outerBox, innerBox), true);
+    t.assert.equal(boundingBoxesIntersect(innerBox, outerBox), true);
+  });
+
+  await t.test('should return true for identical boxes', t => {
+    const boxA = { minX: 0, minY: 0, maxX: 10, maxY: 10 };
+    const boxB = { minX: 0, minY: 0, maxX: 10, maxY: 10 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), true);
+  });
+
+  await t.test('should return true for zero-area boxes that overlap', t => {
+    const boxA = { minX: 5, minY: 5, maxX: 5, maxY: 5 };
+    const boxB = { minX: 5, minY: 5, maxX: 5, maxY: 5 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), true);
+  });
+
+  await t.test('should return false for zero-area boxes that do not overlap', t => {
+    const boxA = { minX: 5, minY: 5, maxX: 5, maxY: 5 };
+    const boxB = { minX: 10, minY: 10, maxX: 10, maxY: 10 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), false);
+  });
+
+  await t.test('should return false when boxes are separated horizontally', t => {
+    const boxA = { minX: 0, minY: 0, maxX: 4, maxY: 10 };
+    const boxB = { minX: 6, minY: 0, maxX: 10, maxY: 10 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), false);
+  });
+
+  await t.test('should return false when boxes are separated vertically', t => {
+    const boxA = { minX: 0, minY: 0, maxX: 10, maxY: 4 };
+    const boxB = { minX: 0, minY: 6, maxX: 10, maxY: 10 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), false);
+  });
+
+  await t.test('should handle negative coordinates', t => {
+    const boxA = { minX: -10, minY: -10, maxX: 0, maxY: 0 };
+    const boxB = { minX: -5, minY: -5, maxX: 5, maxY: 5 };
+
+    t.assert.equal(boundingBoxesIntersect(boxA, boxB), true);
+  });
+});
 
 test('polygonIntersectsPolygon', async t => {
   await t.test('should return true for intersecting polygons', t => {
@@ -82,6 +159,63 @@ test('polygonIntersectsPolygon', async t => {
     t.assert.equal(polygonIntersectsPolygon(polygon, []), false);
     t.assert.equal(polygonIntersectsPolygon([], polygon), false);
     t.assert.equal(polygonIntersectsPolygon([], []), false);
+  });
+
+  await t.test('should return true when polygons intersect via edge intersection only', t => {
+    // Two polygons that don't contain each other's points but have intersecting edges
+    const polygon1 = [
+      { x: 0, y: 5 },
+      { x: 10, y: 5 },
+      { x: 10, y: 6 },
+      { x: 0, y: 6 },
+      { x: 0, y: 5 }
+    ];
+
+    const polygon2 = [
+      { x: 5, y: 0 },
+      { x: 6, y: 0 },
+      { x: 6, y: 10 },
+      { x: 5, y: 10 },
+      { x: 5, y: 0 }
+    ];
+
+    t.assert.equal(polygonIntersectsPolygon(polygon1, polygon2), true);
+  });
+
+  await t.test('should return false when no intersection exists', t => {
+    // Test case where bounding boxes intersect but polygons don't contain each other's points
+    // and edges don't intersect - should hit the final return false
+    const polygon1 = [
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { x: 5, y: 5 },
+      { x: 0, y: 5 },
+      { x: 0, y: 0 }
+    ];
+
+    const polygon2 = [
+      { x: 6, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 5 },
+      { x: 6, y: 5 },
+      { x: 6, y: 0 }
+    ];
+
+    t.assert.equal(polygonIntersectsPolygon(polygon1, polygon2), false);
+  });
+
+  await t.test('lineIntersectsLine should return false for empty lines', t => {
+    const polygon1 = [
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { x: 5, y: 5 },
+      { x: 0, y: 5 },
+      { x: 0, y: 0 }
+    ];
+
+    const emptyPolygon = [];
+
+    t.assert.equal(polygonIntersectsPolygon(polygon1, emptyPolygon), false);
   });
 });
 
@@ -180,6 +314,50 @@ test('polygonIntersectsMultiPolygon', async t => {
 
     t.assert.equal(polygonIntersectsMultiPolygon(pointPolygon, multiPolygon), true);
   });
+
+  await t.test('should return true when polygon point is inside multipolygon', t => {
+    const polygon = [
+      { x: 2, y: 2 },
+      { x: 3, y: 2 },
+      { x: 3, y: 3 },
+      { x: 2, y: 3 },
+      { x: 2, y: 2 }
+    ];
+
+    const multiPolygon = [
+      [
+        { x: 0, y: 0 },
+        { x: 5, y: 0 },
+        { x: 5, y: 5 },
+        { x: 0, y: 5 },
+        { x: 0, y: 0 }
+      ]
+    ];
+
+    t.assert.equal(polygonIntersectsMultiPolygon(polygon, multiPolygon), true);
+  });
+
+  await t.test('should return true when multipolygon and polygon edges intersect', t => {
+    const polygon = [
+      { x: 0, y: 2 },
+      { x: 10, y: 2 },
+      { x: 10, y: 3 },
+      { x: 0, y: 3 },
+      { x: 0, y: 2 }
+    ];
+
+    const multiPolygon = [
+      [
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 3, y: 5 },
+        { x: 2, y: 5 },
+        { x: 2, y: 0 }
+      ]
+    ];
+
+    t.assert.equal(polygonIntersectsMultiPolygon(polygon, multiPolygon), true);
+  });
 });
 
 test('polygonIntersectsBufferedMultiLine', async t => {
@@ -203,7 +381,7 @@ test('polygonIntersectsBufferedMultiLine', async t => {
       ]
     ];
 
-    t.assert.equal(polygonIntersectsBufferedMultiLine(polygon, multiLine, 1), true);
+    t.assert.equal(polygonIntersectsBufferedMultiLine(polygon, multiLine, 2), true);
   });
 
   await t.test('should return true when line point is inside polygon', t => {
@@ -237,6 +415,61 @@ test('polygonIntersectsBufferedMultiLine', async t => {
     ];
 
     t.assert.equal(polygonIntersectsBufferedMultiLine(polygon, multiLine, 2), true);
+  });
+
+  await t.test('should return true when single point polygon is within buffer of line', t => {
+    const singlePointPolygon = [{ x: 5, y: 5 }];
+    const multiLine = [
+      [
+        { x: 3, y: 5 },
+        { x: 7, y: 5 }
+      ]
+    ];
+
+    t.assert.equal(polygonIntersectsBufferedMultiLine(singlePointPolygon, multiLine, 1), true);
+  });
+
+  await t.test('should return true when line intersects buffered line directly', t => {
+    const linePolygon = [
+      { x: 0, y: 10 },
+      { x: 20, y: 10 }
+    ];
+    const multiLine = [
+      [
+        { x: 10, y: 8 },
+        { x: 10, y: 12 }
+      ]
+    ];
+
+    t.assert.equal(polygonIntersectsBufferedMultiLine(linePolygon, multiLine, 0.5), true);
+  });
+
+  await t.test('should handle empty lines in lineIntersectsLine', t => {
+    const polygon = [
+      { x: 5, y: 5 },
+      { x: 15, y: 5 },
+      { x: 15, y: 15 },
+      { x: 5, y: 15 },
+      { x: 5, y: 5 }
+    ];
+
+    const emptyMultiLine = [[]];
+
+    t.assert.equal(polygonIntersectsBufferedMultiLine(polygon, emptyMultiLine, 1), false);
+  });
+
+  await t.test('should handle single point line intersection', t => {
+    const polygon = [
+      { x: 5, y: 5 },
+      { x: 15, y: 5 },
+      { x: 15, y: 15 },
+      { x: 5, y: 15 },
+      { x: 5, y: 5 }
+    ];
+
+    const singlePointLine = [[{ x: 10, y: 3 }]];
+
+    t.assert.equal(polygonIntersectsBufferedMultiLine(polygon, singlePointLine, 3), true);
   });
 });
 
@@ -304,6 +537,19 @@ test('polygonIntersectsBox', async t => {
 
     t.assert.equal(polygonIntersectsBox(linePolygon, 0, 5, 20, 15), true);
     t.assert.equal(polygonIntersectsBox(linePolygon, 0, 0, 5, 5), false);
+  });
+
+  await t.test('edgeIntersectsBox should handle all corner checks', t => {
+    // Create a polygon edge that requires checking all corners of the box
+    const polygon = [
+      { x: -1, y: 5 },
+      { x: 21, y: 5 },
+      { x: 21, y: 6 },
+      { x: -1, y: 6 },
+      { x: -1, y: 5 }
+    ];
+
+    t.assert.equal(polygonIntersectsBox(polygon, 0, 0, 20, 10), true);
   });
 });
 

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { polygonContainsPoint } from '../lib/intersections.js';
 import { findPoleOfInaccessibility } from '../lib/poi.js';
 
 test('polygon_poi', async t => {
@@ -44,9 +45,8 @@ test('polygon_poi', async t => {
   await t.test('single point polygon', t => {
     const point = [{ x: 5, y: 5 }];
     const result = findPoleOfInaccessibility([point], 0.1);
-    // Single point polygon returns NaN coordinates due to centroid calculation
-    t.assert.ok(Number.isNaN(result.x));
-    t.assert.ok(Number.isNaN(result.y));
+    t.assert.equal(result.x, 5);
+    t.assert.equal(result.y, 5);
   });
 
   await t.test('two point polygon (line)', t => {
@@ -189,5 +189,80 @@ test('polygon_poi', async t => {
     t.assert.ok(typeof result.y === 'number');
     // Should find a spot in the thin border area
     t.assert.ok(result.x < 1 || result.x > 9 || result.y < 1 || result.y > 9);
+  });
+
+  await t.test('zero area polygon (line)', t => {
+    const line = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 0, y: 0 }
+    ];
+    const result = findPoleOfInaccessibility([line], 0.1);
+    t.assert.deepEqual(result, { x: 0, y: 0 });
+  });
+
+  await t.test('C-shaped polygon with outside centroid', t => {
+    const cShape = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 1 },
+      { x: 1, y: 1 },
+      { x: 1, y: 9 },
+      { x: 10, y: 9 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 },
+      { x: 0, y: 0 }
+    ];
+    const result = findPoleOfInaccessibility([cShape], 0.1);
+    // Centroid is outside, so it should find a pole inside the polygon
+    t.assert.ok(polygonContainsPoint(cShape, result));
+  });
+
+  await t.test('polygon not centered at 0,0 with outside centroid', t => {
+    const cShape = [
+      { x: 100, y: 100 },
+      { x: 110, y: 100 },
+      { x: 110, y: 101 },
+      { x: 101, y: 101 },
+      { x: 101, y: 109 },
+      { x: 110, y: 109 },
+      { x: 110, y: 110 },
+      { x: 100, y: 110 },
+      { x: 100, y: 100 }
+    ];
+    const result = findPoleOfInaccessibility([cShape], 0.1);
+    // Centroid is outside, so it should find a pole inside the polygon
+    t.assert.ok(polygonContainsPoint(cShape, result));
+  });
+
+  await t.test('polygon with a hole that contains the centroid', t => {
+    const outer = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 },
+      { x: 0, y: 0 }
+    ];
+    const hole = [
+      { x: 4, y: 4 },
+      { x: 6, y: 4 },
+      { x: 6, y: 6 },
+      { x: 4, y: 6 },
+      { x: 4, y: 4 }
+    ];
+    const result = findPoleOfInaccessibility([outer, hole], 0.1);
+    t.assert.ok(polygonContainsPoint(outer, result));
+    t.assert.ok(!polygonContainsPoint(hole, result));
+  });
+
+  await t.test('collapsed polygon with all points the same', t => {
+    const polygon = [
+      { x: 5, y: 5 },
+      { x: 5, y: 5 },
+      { x: 5, y: 5 },
+      { x: 5, y: 5 }
+    ];
+    const result = findPoleOfInaccessibility([polygon], 0.1);
+    t.assert.deepEqual(result, { x: 5, y: 5 });
   });
 });

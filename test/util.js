@@ -1,5 +1,5 @@
 import test from 'node:test';
-import { calculateSignedArea, isClosedPolygon, isCounterClockwise } from '../lib/util.js';
+import { calculateSignedArea, getBoundingBox, isClosedPolygon, isCounterClockwise } from '../lib/util.js';
 
 test('isCounterClockwise ', async t => {
   await t.test('counter clockwise', t => {
@@ -181,5 +181,132 @@ test('isClosedPolygon', async t => {
 
     // Area is 0.005, which is <= 0.01 threshold
     t.assert.equal(isClosedPolygon(polygon), false);
+  });
+});
+
+test('getBoundingBox', async t => {
+  await t.test('empty polygon', t => {
+    const polygon = [];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 0);
+    t.assert.equal(bbox.minY, 0);
+    t.assert.equal(bbox.maxX, 0);
+    t.assert.equal(bbox.maxY, 0);
+  });
+
+  await t.test('single point', t => {
+    const polygon = [{ x: 5, y: 3 }];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 5);
+    t.assert.equal(bbox.minY, 3);
+    t.assert.equal(bbox.maxX, 5);
+    t.assert.equal(bbox.maxY, 3);
+  });
+
+  await t.test('two points', t => {
+    const polygon = [
+      { x: 1, y: 2 },
+      { x: 4, y: 6 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 1);
+    t.assert.equal(bbox.minY, 2);
+    t.assert.equal(bbox.maxX, 4);
+    t.assert.equal(bbox.maxY, 6);
+  });
+
+  await t.test('square polygon', t => {
+    const polygon = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 },
+      { x: 0, y: 0 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 0);
+    t.assert.equal(bbox.minY, 0);
+    t.assert.equal(bbox.maxX, 10);
+    t.assert.equal(bbox.maxY, 10);
+  });
+
+  await t.test('irregular polygon', t => {
+    const polygon = [
+      { x: 2, y: 1 },
+      { x: 7, y: 3 },
+      { x: 5, y: 8 },
+      { x: -1, y: 4 },
+      { x: 2, y: 1 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, -1);
+    t.assert.equal(bbox.minY, 1);
+    t.assert.equal(bbox.maxX, 7);
+    t.assert.equal(bbox.maxY, 8);
+  });
+
+  await t.test('polygon with negative coordinates', t => {
+    const polygon = [
+      { x: -5, y: -3 },
+      { x: -2, y: -7 },
+      { x: -8, y: -1 },
+      { x: -5, y: -3 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, -8);
+    t.assert.equal(bbox.minY, -7);
+    t.assert.equal(bbox.maxX, -2);
+    t.assert.equal(bbox.maxY, -1);
+  });
+
+  await t.test('polygon with decimal coordinates', t => {
+    const polygon = [
+      { x: 1.5, y: 2.7 },
+      { x: 3.2, y: 1.1 },
+      { x: 0.8, y: 4.9 },
+      { x: 1.5, y: 2.7 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 0.8);
+    t.assert.equal(bbox.minY, 1.1);
+    t.assert.equal(bbox.maxX, 3.2);
+    t.assert.equal(bbox.maxY, 4.9);
+  });
+
+  await t.test('collinear points (horizontal line)', t => {
+    const polygon = [
+      { x: 1, y: 5 },
+      { x: 3, y: 5 },
+      { x: 7, y: 5 },
+      { x: 2, y: 5 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 1);
+    t.assert.equal(bbox.minY, 5);
+    t.assert.equal(bbox.maxX, 7);
+    t.assert.equal(bbox.maxY, 5);
+  });
+
+  await t.test('collinear points (vertical line)', t => {
+    const polygon = [
+      { x: 3, y: 1 },
+      { x: 3, y: 4 },
+      { x: 3, y: 2 },
+      { x: 3, y: 6 }
+    ];
+    const bbox = getBoundingBox(polygon);
+
+    t.assert.equal(bbox.minX, 3);
+    t.assert.equal(bbox.minY, 1);
+    t.assert.equal(bbox.maxX, 3);
+    t.assert.equal(bbox.maxY, 6);
   });
 });
