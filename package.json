@@ -1,6 +1,6 @@
 {
   "name": "@mapwhit/geometry",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "2d cartesian geometry utils used by map.",
   "author": {
     "name": "Damian Krzeminski",
