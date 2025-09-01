@@ -112,6 +112,7 @@ Returns `boolean` - True if the points form a closed polygon with sufficient are
 ### `clipLine(lines, x1, y1, x2, y2)`
 
 Returns the part of a multiline that intersects with the provided rectangular box.
+Uses Liang-Barsky algorithm for efficient line clipping against a rectangular boundary.
 
 `lines` `[[{x, y}]]` : Array of line strings, each consisting of points with x, y coordinates.  
 `x1` `number` : The left edge of the bounding box.  
