@@ -109,6 +109,18 @@ Detects closed polygons where first + last point are equal and area is above thr
 
 Returns `boolean` - True if the points form a closed polygon with sufficient area.
 
+### `clipLine(lines, x1, y1, x2, y2)`
+
+Returns the part of a multiline that intersects with the provided rectangular box.
+
+`lines` `[[{x, y}]]` : Array of line strings, each consisting of points with x, y coordinates.  
+`x1` `number` : The left edge of the bounding box.  
+`y1` `number` : The top edge of the bounding box.  
+`x2` `number` : The right edge of the bounding box.  
+`y2` `number` : The bottom edge of the bounding box.  
+
+Returns `[[{x, y}]]` - Array of clipped line strings that fall within the bounding box.
+
 ## [License](LICENSE)
 
 BSD-3-Clause © 2025 [Damian Krzeminski](https://pirxpilot.me)  
